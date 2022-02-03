@@ -10,27 +10,42 @@ class GameState():
 
 def play(Game):
     Game.difficulty = int(input("Select the difficulty (1-3): ")) - 1
-    Game.board = create_board(Game.difficulty)
-    Game.safe_area = get_safe_area(Game)
-    Game.bomb_list = [place_bomb(Game) for x in range(0, get_bomb_count(Game.difficulty))]
+    Game.board = create_board(Game)
+    Game.safe_area = get_safe_area(Game.board)
 
-    board_print(Game)
+    board_print(Game.board)
 
 
-def board_print(Game):
-    new_board = [ [bomb_count(Game,row,col) for row in board_size(Game.board) - 1] for col in row]
-    for row in new_board:
-        print(row)
+def board_print(board):
+    new_board = []
+    num_rows = board_size(board)[0]
+    num_cols = board_size(board)[1]
+
+    for row in range(0, num_rows):
+        for col in range(0, num_cols):
+            if board[row][col] == 1:
+                new_board.append(9)
+            else:
+                new_board.append(bomb_count(board, row, col))
+            if len(new_board) == board_size(board)[1]:
+                print(new_board)
+                new_board = []
 
 def board_size(board):
-    return (len(board[1]), len(board[0]))
+    return (len(board), len(board[0]))
 
-def create_board(difficulty):
+
+def create_board(Game):
     # returns board with x rows and y columns
-    num_rows = get_board_rows(difficulty)
-    num_cols = get_board_cols(difficulty)
-    return [[0 for x in range(0, num_rows)] for y in range(0, num_cols)]
+    num_rows = get_board_rows(Game.difficulty)
+    num_cols = get_board_cols(Game.difficulty)
+    grid = [[0 for x in range(0, num_rows)] for y in range(0, num_cols)]
 
+    bomb_list = [ place_bomb(grid, Game.safe_area) for bomb in range(0, get_bomb_count(Game.difficulty)) ]
+    for bomb in bomb_list:
+        grid[bomb[0]][bomb[1]] = 1
+
+    return grid
 
 def get_board_rows(difficulty):
     sizes = [[8, 9, 10], [13, 14, 15], [16, 16, 16]]
@@ -47,41 +62,41 @@ def get_bomb_count(difficulty):
     return bomb_nums[difficulty]
 
 
-def place_bomb(Game):
+def place_bomb(board, safe_area):
     # places bombs anywhere outside the safe area
-    row = randrange(0, board_size(Game.board)[0])
-    col = randrange(0, board_size(Game.board)[1])
+    row = randrange(0, board_size(board)[0])
+    col = randrange(0, board_size(board)[1])
 
-    if Game.board[row][col] == 1:
-        return place_bomb(Game)
-    if [row, col] in Game.safe_area:
-        return place_bomb(Game)
+    if board[row][col] == 1:
+        return place_bomb(board, safe_area)
+    if [row, col] in safe_area:
+        return place_bomb(board, safe_area)
     else:
-        Game.board[row][col] = 1
+        board[row][col] = 1
         return [row, col]
 
 
-def bomb_count(Game, row, col):
+def bomb_count(board, row, col):
     # sets number of bombs surrounding each tile
-    adjacent_tiles = get_adjacent_tiles(board_size(Game.board), row, col)
-    bombs = [ tile for tile in adjacent_tiles if Game.board[tile[0]][tile[1]] == 1 ]
+    adjacent_tiles = get_adjacent_tiles(board_size(board), row, col)
+    bombs = [ tile for tile in adjacent_tiles if board[tile[0]][tile[1]] == 1 ]
     return len(bombs)
 
 def get_adjacent_tiles(board_size, row, col):
     tiles = [(row - 1, col - 1), (row - 1, col), (row - 1, col + 1),
              (row, col - 1), (row, col + 1),
              (row + 1, col - 1), (row + 1, col), (row + 1, col + 1)]
-    return [ tile for tile in tiles if validate_tile(board_size, row, col) ]
+    return [ tile for tile in tiles if valid_tile(board_size, tile[0],tile[1]) ]
 
 
-def validate_tile(board_size, row, col):
-    return ( (row >= 0 and row < board_size[0] - 1) and (col >= 0 and col < board_size[1] - 1) )
+def valid_tile(board_size, row, col):
+    return ( (row >= 0 and row < board_size[0]) and (col >= 0 and col < board_size[1]) )
 
 
-def get_safe_area(Game):
+def get_safe_area(board):
     # set 3x3 box in bomb_list to prevent bombs in click area
     # change later to use click location
-    size = board_size(Game.board)
+    size = board_size(board)
     click_row = ceil(size[0] / 2) - 1
     click_col = ceil(size[1] / 2) - 1
-    return get_adjacent_tiles(board_size(Game.board), click_row, click_col)
+    return get_adjacent_tiles(board_size(board), click_row, click_col)
