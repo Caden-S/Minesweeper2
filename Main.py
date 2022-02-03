@@ -1,4 +1,4 @@
-import Types
-ms = Types.GameState()
-Types.play(ms)
+import Game
+ms = Game.GameState()
+Game.play(ms)
 # window = tk.Tk()
