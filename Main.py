@@ -1,6 +1,4 @@
 import Types
-import tkinter as tk
-
-Minesweeper = Types.Game()
-Minesweeper.play()
+ms = Types.GameState()
+Types.play(ms)
 # window = tk.Tk()
