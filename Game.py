@@ -1,11 +1,11 @@
 from random import randrange
 from math import ceil
 
-
 class GameState():
     difficulty = 0
     board = []
     safe_area = []
+
 
 
 def play(Game):
@@ -13,23 +13,40 @@ def play(Game):
     Game.board = create_board(Game)
     Game.safe_area = get_safe_area(Game.board)
 
-    board_print(Game.board)
+    board = reveal_board(Game.board)
+    print(board_tuples(board))
 
 
-def board_print(board):
+def reveal_board(board):
     new_board = []
+    rows = []
     num_rows = board_size(board)[0]
     num_cols = board_size(board)[1]
 
     for row in range(0, num_rows):
         for col in range(0, num_cols):
             if board[row][col] == 1:
-                new_board.append(9)
+                rows.append(9)
             else:
-                new_board.append(bomb_count(board, row, col))
-            if len(new_board) == board_size(board)[1]:
-                print(new_board)
-                new_board = []
+                rows.append(bomb_count(board, row, col))
+            if len(rows) == board_size(board)[1]:
+                new_board += [rows]
+                rows = []
+    return new_board
+
+
+def board_tuples(board):
+    new_board = []
+    rows = []
+    for row in board:
+        for tile in row:
+            rows.append((1, tile))
+            if len(rows) == board_size(board)[1]:
+                new_board += [rows]
+                rows = []
+    return new_board
+    
+
 
 def board_size(board):
     return (len(board), len(board[0]))
