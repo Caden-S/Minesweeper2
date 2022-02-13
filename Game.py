@@ -10,23 +10,50 @@ class GameState():
 
 
 def start(Game):
-    Game.difficulty = int(input("Select the difficulty (1-3): ")) - 1
+    Game.difficulty = get_choice([], 0)
 
     board = true_board(create_board(Game))
     os.system('cls' if os.name == 'nt' else 'clear')
     print_board(board)
 
-    choice = format_choice(input("Enter tile position (x,y): "))
+    choice = get_choice(board, 1)
     os.system('cls' if os.name == 'nt' else 'clear')
 
     Game.safe_area = get_safe_area(board, choice)
-    Game.board = bombs(Game, board)
+    Game.board = get_bombs(Game, board)
 
     play(Game, [choice], 0)
+
+def get_choice(board, type):
+    if type == 0:
+        values = [0,1,2]
+        try:
+            resp = int(input("Select the difficulty (1-3): ")) - 1
+            if resp not in values:
+                print("Please select a valid difficulty")
+                return get_choice(board, 0)
+            else:
+                return resp
+        except ValueError:
+            print("Please select a valid difficulty")
+            return get_choice(board, 0)
+        except TypeError:
+            print("Please select a valid difficulty")
+            return get_choice(board, 0)
+
+    if type == 1:
+        resp = format_choice(input("Enter the tile position (row, col): "))
+        if resp != False:
+            if resp[0] < board_size(board)[0] and resp[1] < board_size(board)[1]:
+                return resp
+        else:
+            print("Please select a valid tile")
+            return get_choice(board, 1)
 
 
 def play(Game, chosen_tiles, error):
     board = true_board(Game.board)
+
     for tile in chosen_tiles:
         board = reveal(board, tile, [])
     if check_win_loss(Game, board, chosen_tiles[-1]) == True:
@@ -37,7 +64,7 @@ def play(Game, chosen_tiles, error):
     if error == 1:
         print("Please pick a valid tile.")
 
-    choice = format_choice(input("Enter tile position (x,y): "))
+    choice = get_choice(board, 1)
     if choice in chosen_tiles:
         os.system('cls' if os.name == 'nt' else 'clear')
         play(Game, chosen_tiles, 1)
@@ -62,7 +89,7 @@ def lose(Game):
     cols = board_size(board)[1]
     for row in range(0, rows):
         for col in range(0, cols):
-            if board[row][col][1] != 9:
+            if board[row][col][1] != 'B':
                 board[row][col] = (1, board[row][col][1])
             else:
                 board[row][col] = (1, 'B')
@@ -72,7 +99,7 @@ def lose(Game):
 
 
 def check_win_loss(Game, board, choice):
-    if board[choice[0]][choice[1]][1] == 9:
+    if board[choice[0]][choice[1]][1] == 'B':
         lose(Game)
         return True
     else:
@@ -85,18 +112,25 @@ def check_win_loss(Game, board, choice):
 
 def all_safe_revealed(board):
     tiles = []
-    for tile in board:
-        if tile[1] != 9:
-            if tile[0] == 1:
-                tiles.append(True)
-            else:
-                tiles.append(False)
+    for row in board:
+        for tile in row:
+            if tile[1] != 'B':
+                if tile[0] == 1:
+                    tiles.append(True)
+                else:
+                    tiles.append(False)
     return (False not in tiles)
 
 
 def format_choice(choice):
-    choice = choice.split(',')
-    return((int(choice[0]) - 1, int(choice[1]) - 1))
+    if ',' not in choice:
+        return False
+    else:
+        choice = choice.split(',')
+        if choice[0] and choice[1]:
+            return ((int(choice[0]) - 1, int(choice[1]) - 1))
+        else:
+            return False
 
 
 def print_board(board):
@@ -129,8 +163,6 @@ def print_board(board):
             if tile[0] == 0:
                 string_row += (" X |")
             else:
-                if tile[1] == 9:
-                    string_row += " ! |"
                 if tile[1] == 0:
                     string_row += "   |"
                 else:
@@ -146,8 +178,7 @@ def print_board(board):
 def reveal(board, choice, checked):
     if board[choice[0]][choice[1]][1] == 0:
         adjacent_tiles = get_adjacent_tiles(board_size(board), choice)
-        safe_adjacent = [
-            tile for tile in adjacent_tiles if board[tile[0]][tile[1]][1] <= 8]
+        safe_adjacent = [ tile for tile in adjacent_tiles if board[tile[0]][tile[1]][1] != 'B' ]
         safe_adjacent.append(choice)
         for tile in safe_adjacent:
             if tile not in checked:
@@ -164,23 +195,17 @@ def reveal(board, choice, checked):
         board[choice[0]][choice[1]] = (1, board[choice[0]][choice[1]][1])
         return board
 
-
 def true_board(board):
-    new_board = []
-    rows = []
     num_rows = board_size(board)[0]
     num_cols = board_size(board)[1]
 
     for row in range(0, num_rows):
         for col in range(0, num_cols):
             if board[row][col] == 1:
-                rows.append((0, 9))
+                board[row][col] = (0, 'B')
             else:
-                rows.append((0, bomb_count(board, (row, col))))
-            if len(rows) == board_size(board)[1]:
-                new_board += [rows]
-                rows = []
-    return new_board
+                board[row][col] = (0, bomb_count(board, (row, col)))
+    return board
 
 
 def board_size(board):
@@ -195,7 +220,7 @@ def create_board(Game):
     return grid
 
 
-def bombs(Game, board):
+def get_bombs(Game, board):
     bomb_list = [place_bomb(Game, board)
                  for bomb in range(0, get_num_bombs(Game.difficulty))]
     for bomb in bomb_list:
@@ -223,9 +248,7 @@ def place_bomb(Game, board):
     row = randrange(0, board_size(board)[0])
     col = randrange(0, board_size(board)[1])
 
-    if board[row][col] == 1:
-        return place_bomb(Game, board)
-    if (row, col) in Game.safe_area:
+    if board[row][col] == 1 or (row, col) in Game.safe_area:
         return place_bomb(Game, board)
     else:
         board[row][col] = 1
