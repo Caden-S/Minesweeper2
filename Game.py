@@ -4,12 +4,12 @@ from copy import deepcopy
 import os
 
 
-class GameState():
+class GameState:
     difficulty = 0
     board = []
     safe_area = []
 
-class Tile():
+class Tile:
     def __init__(self, revealed, bomb):
         self.revealed = revealed
         self.bomb = bomb
@@ -21,28 +21,24 @@ class Tile():
         else:
             return False
 
-
 def start(Game):
-    Game.difficulty = get_choice([], 0)
-    Game.board = create_board(Game)
-
     os.system('cls' if os.name == 'nt' else 'clear')
-    print_board(Game.board)
 
+    Game.difficulty = get_choice([], 0)
+    Game.board = create_board(Game.difficulty)
+    print_board(Game.board)
     choice = get_choice(Game.board, 1)
+
     os.system('cls' if os.name == 'nt' else 'clear')
 
     Game.safe_area = get_safe_area(Game.board, choice)
-    Game.board = get_bomb_locs(Game, Game.board)
-    Game.board = set_bomb_count(Game.board)
-
+    Game.board = set_bomb_count(get_bomb_locs(Game, Game.board))
     play(Game, [choice], 0)
-
 
 def play(Game, chosen_tiles, error):
     for tile in chosen_tiles:
-        board = reveal(Game.board, tile, [])
-    if check_win_loss(Game, Game.board, chosen_tiles[-1]) == True:
+        Game.board = reveal(Game.board, tile, [])
+    if check_win_loss(Game, chosen_tiles[-1]) == True:
         return
 
     print_board(Game.board)
@@ -58,10 +54,9 @@ def play(Game, chosen_tiles, error):
         chosen_tiles.append(choice)
         play(Game, chosen_tiles, 0)
 
-
 def get_choice(board, type):
-    # Type 0 checks if difficulty input is in range
-    # and is a valid input
+    # Type 0 checks if difficulty inputs are in range
+    # and are valid inputs
     if type == 0:
         values = [0,1,2]
         try:
@@ -79,7 +74,7 @@ def get_choice(board, type):
             return get_choice(board, 0)
 
     # Type 1 checks if inputs for coordinates are in range
-    # or are valid inputs
+    # and are valid inputs
     if type == 1:
         resp = format_choice(input("Enter the tile position (row, col): "))
         if resp != False:
@@ -91,45 +86,6 @@ def get_choice(board, type):
         else:
             print("Please select a valid tile")
             return get_choice(board, 1)
-
-
-def win(board):
-    os.system('cls' if os.name == 'nt' else 'clear')
-    print_board(board)
-    print(" ")
-    print("You win!")
-
-
-def lose(Game):
-    os.system('cls' if os.name == 'nt' else 'clear')
-    print_board(reveal_all(Game.board))
-    print(" ")
-    print("You lose!")
-
-
-def check_win_loss(Game, board, choice):
-    if board[choice[0]][choice[1]].bomb == True:
-        lose(Game)
-        return True
-    else:
-        if all_safe_revealed(board) == True:
-            win(board)
-            return True
-        else:
-            return
-
-def reveal_all(board):
-    # Returns revealed version of board
-    b = deepcopy(board)
-    for row in b:
-        for tile in row:
-            if tile.bomb == False:
-                tile.revealed = True
-    return b
-
-def all_safe_revealed(board):
-    return (board == reveal_all(board))
-
 
 def format_choice(choice):
     # Turns input 5,5 into tuple (5,5) and checks 
@@ -147,6 +103,41 @@ def format_choice(choice):
         else:
             return False
 
+def win(board):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print_board(board)
+    print(" ")
+    print("You win!")
+
+def lose(Game):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print_board(reveal_all(Game.board))
+    print(" ")
+    print("You lose!")
+
+def check_win_loss(Game, choice):
+    if Game.board[choice[0]][choice[1]].bomb == True:
+        lose(Game)
+        return True
+    else:
+        if all_safe_revealed(Game.board) == True:
+            win(Game.board)
+            return True
+        else:
+            return
+
+def reveal_all(board):
+    # Returns revealed version of board
+    for row in board:
+        for tile in row:
+            if tile.bomb == False:
+                tile.revealed = True
+    return board
+
+def all_safe_revealed(board):
+    not_bombs = [ tile for row in board for tile in row if tile.bomb == False ]
+    all_revealed = [ True if tile.revealed == True else False for tile in not_bombs ]
+    return False not in all_revealed
 
 def print_board(board):
     # Prints column numbers
@@ -160,34 +151,33 @@ def print_board(board):
 
     # Prints tiles as X for unrevealed, blank if no bombs, 
     # or the number of bombs nearby
-    string_row = ""
-    spacer = ""
-    counter = 0
-    for row in board:
-        counter += 1
-        if counter < 10:
-            string_row += "{}  |".format(counter)
+    for row in enumerate(board):
+        string_row = ""
+        spacer = ""
+        if row[0] < 9:
+            string_row += "{}  |".format(row[0] + 1)
         else:
-            string_row += "{} |".format(counter)
+            string_row += "{} |".format(row[0] + 1)
         spacer += "   |"
-        for tile in row:
-            if tile.revealed == False:
-                string_row += (" X |")
-            else:
-                if tile.bomb == False:
-                    if tile.counter == 0:
-                        string_row += "   |".format(tile.counter)
-                    else:
-                        string_row += " {} |".format(tile.counter)
-                else:
-                    string_row += " X |"
+
+        for tile in row[1]:
+            string_row += get_tile_format(tile)
             spacer += "---|"
         print(string_row)
         print(spacer)
-        string_row = ""
-        spacer = ""
     print("\n")
 
+def get_tile_format(tile):
+    if tile.revealed == False:
+        return " X |"
+    else:
+        if tile.bomb == False:
+            if tile.counter == 0:
+                return "   |"
+            else:
+                return " {} |".format(tile.counter)
+        else:
+            return " X |"
 
 def reveal(board, choice, checked):
     # Recursively reveals if tiles around the 'choice'
@@ -213,51 +203,48 @@ def reveal(board, choice, checked):
         board[choice[0]][choice[1]].revealed = True
         return board
 
-
 def board_size(board):
     return (len(board), len(board[0]))
 
-
-def create_board(Game):
+def create_board(difficulty):
     # Returns board with x rows and y columns
-    num_rows = get_board_rows(Game.difficulty)
-    num_cols = get_board_cols(Game.difficulty)
-    grid = [[Tile(False, False) for x in range(0, num_cols)] for y in range(0, num_rows)]
-    return grid
-
-
-def get_bomb_locs(Game, board):
-    # Returns list of tuples for coordinates of bombs
-    bomb_list = [place_bomb(Game, board)
-                 for bomb in range(0, set_total_bombs(Game.difficulty))]
-    for bomb in bomb_list:
-        board[bomb[0]][bomb[1]] = Tile(False, True)
+    num_rows = get_board_rows(difficulty)
+    num_cols = get_board_cols(difficulty)
+    board = [[Tile(False, False) for x in range(0, num_cols)] for y in range(0, num_rows)]
     return board
-
-
-def set_bomb_count(board):
-    # Sets counter for each tile
-    for row in range(board_size(board)[0]):
-        for tile in range(board_size(board)[1]):
-            board[row][tile].counter += get_bomb_count(board, (row,tile))
-    return board
-
 
 def get_board_rows(difficulty):
     sizes = [[8, 9, 10], [13, 14, 15], [16, 16, 16]]
     return sizes[difficulty][randrange(0, 3)]
 
-
 def get_board_cols(difficulty):
     sizes = [[8, 9, 10], [13, 14, 15], [30, 30, 30]]
     return sizes[difficulty][randrange(0, 3)]
-
 
 def set_total_bombs(difficulty):
     # Sets bomb count based on difficulty
     bomb_nums = [10, 40, 99]
     return bomb_nums[difficulty]
 
+def get_bomb_locs(Game, board):
+    # Returns list of tuples for coordinates of bombs
+    bomb_list = [ place_bomb(Game, board) for bomb in range(0, set_total_bombs(Game.difficulty)) ]
+    for bomb in bomb_list:
+        board[bomb[0]][bomb[1]].bomb = True
+    return board
+
+def get_bomb_count(board, position):
+    # Gets number of bombs surrounding each tile
+    adjacent_tiles = get_adjacent_tiles(board_size(board), position)
+    bombs = [tile for tile in adjacent_tiles if board[tile[0]][tile[1]].bomb == True]
+    return len(bombs)
+
+def set_bomb_count(board):
+    # Sets counter for each tile
+    for row in enumerate(board):
+        for tile in enumerate(row[1]):
+            board[row[0]][tile[0]].counter += get_bomb_count(board, (row[0],tile[0]))
+    return board
 
 def place_bomb(Game, board):
     # Places bombs anywhere outside the safe area
@@ -269,14 +256,6 @@ def place_bomb(Game, board):
     else:
         return [row, col]
 
-
-def get_bomb_count(board, position):
-    # Gets number of bombs surrounding each tile
-    adjacent_tiles = get_adjacent_tiles(board_size(board), position)
-    bombs = [tile for tile in adjacent_tiles if board[tile[0]][tile[1]].bomb == True]
-    return len(bombs)
-
-
 def get_adjacent_tiles(board_size, position):
     # Gets all tiles in a 3x3 box around the position
     row = position[0]
@@ -286,13 +265,11 @@ def get_adjacent_tiles(board_size, position):
              (row + 1, col - 1), (row + 1, col), (row + 1, col + 1)]
     return [tile for tile in tiles if valid_tile(board_size, tile)]
 
-
 def valid_tile(board_size, position):
     # Checks if each tile is within the bounds of the board
     row = position[0]
     col = position[1]
     return ((row >= 0 and row < board_size[0]) and (col >= 0 and col < board_size[1]))
-
 
 def get_safe_area(board, choice):
     # Sets a 3x3 safe space around initial choice
