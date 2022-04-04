@@ -1,4 +1,3 @@
-from concurrent.futures.thread import BrokenThreadPool
 from random import randrange
 from math import ceil
 from copy import deepcopy
@@ -151,20 +150,13 @@ def format_choice(choice):
 
 def print_board(board):
     # Prints column numbers
-    starting_rows = ["", ""]
-    for tile in range(0, board_size(board)[1]):
-        if tile == 0:
-            starting_rows[0] += "     {} ".format(str(tile + 1))
-            starting_rows[1] += "    ---"
-        else:
-            if tile < 10:
-                starting_rows[0] += "  {} ".format(str(tile + 1))
-                starting_rows[1] += " ---"
-            else:
-                starting_rows[0] += " {} ".format(str(tile + 1))
-                starting_rows[1] += " ---"
-    print(starting_rows[0])
-    print(starting_rows[1])
+    num_row_string = "  "
+    starting_row = "   "
+    num_row = [ "   " + str(col + 1) if col < 10 else col for col in range(0, board_size(board)[1]) ]
+    for col in num_row:
+        num_row_string += col
+        starting_row += " ---"
+    print(num_row_string + "\n" + starting_row)
 
     # Prints tiles as X for unrevealed, blank if no bombs, 
     # or the number of bombs nearby
