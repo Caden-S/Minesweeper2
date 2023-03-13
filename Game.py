@@ -143,9 +143,9 @@ def print_board(board):
     # Prints column numbers
     num_row_string = "  "
     starting_row = "   "
-    num_row = [ "   " + str(col + 1) if col < 10 else col for col in range(0, board_size(board)[1]) ]
+    num_row = [ "   " + str(col + 1) if col < 10 else "  " + str(col + 1) for col in range(0, board_size(board)[1]) ]
     for col in num_row:
-        num_row_string += col
+        num_row_string += str(col)
         starting_row += " ---"
     print(num_row_string + "\n" + starting_row)
 
@@ -169,7 +169,7 @@ def print_board(board):
 
 def get_tile_format(tile):
     if tile.revealed == False:
-        return " X |"
+        return " {} |".format(u"\u2588")
     else:
         if tile.bomb == False:
             if tile.counter == 0:
@@ -177,7 +177,7 @@ def get_tile_format(tile):
             else:
                 return " {} |".format(tile.counter)
         else:
-            return " X |"
+            return " {} |".format(u"\u2588")
 
 def reveal(board, choice, checked):
     # Recursively reveals if tiles around the 'choice'
